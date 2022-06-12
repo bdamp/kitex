@@ -30,5 +30,5 @@ type MessageReader interface {
 
 // MessageWriter write to thrift.TProtocol
 type MessageWriter interface {
-	Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base) error
+	Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base, customWriters map[string]CustomWriter) error
 }

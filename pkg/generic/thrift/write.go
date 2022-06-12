@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/apache/thrift/lib/go/thrift"
@@ -34,6 +35,7 @@ type writerOption struct {
 	requestBase *Base // request base from metahandler
 	// decoding Base64 to binary
 	binaryWithBase64 bool
+	customWriters map[string]CustomWriter
 }
 
 type writer func(ctx context.Context, val interface{}, out thrift.TProtocol, t *descriptor.TypeDescriptor, opt *writerOption) error
@@ -683,6 +685,26 @@ func writeStruct(ctx context.Context, val interface{}, out thrift.TProtocol, t *
 			}
 			continue
 		}
+		if field.Type.IsCustomData {
+			if field.Type.Name == "AgwCommonParam" {
+				elem = map[string]interface{}{} // 外层只需占位，避免required情况报错
+			} else {
+				w, ok := opt.customWriters[field.Type.CustomDataName]
+				if !ok {
+					return errors.New("no custom data writer: " + field.Type.CustomDataName)
+				}
+				if err := out.WriteFieldBegin(field.Name, field.Type.Type.ToThriftTType(), int16(field.ID)); err != nil {
+					return err
+				}
+				if err := w(ctx, out, field); err != nil {
+					return err
+				}
+				if err := out.WriteFieldEnd(); err != nil {
+					return err
+				}
+				continue
+			}
+		}
 		if !ok || elem == nil {
 			if field.Required {
 				return fmt.Errorf("required field (%d/%s) missing", field.ID, name)
@@ -810,3 +832,5 @@ func writeJSON(ctx context.Context, val interface{}, out thrift.TProtocol, t *de
 	}
 	return out.WriteStructEnd()
 }
+
+type CustomWriter func(ctx context.Context, out thrift.TProtocol, field *descriptor.FieldDescriptor) error

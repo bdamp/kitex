@@ -23,6 +23,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 
 	gthrift "github.com/cloudwego/kitex/pkg/generic/thrift"
+	thrift2 "github.com/cloudwego/kitex/pkg/generic/thrift"
 	codecThrift "github.com/cloudwego/kitex/pkg/remote/codec/thrift"
 	"github.com/cloudwego/kitex/pkg/serviceinfo"
 )
@@ -85,6 +86,7 @@ type Args struct {
 	Method  string
 	base    *gthrift.Base
 	inner   interface{}
+	customWriters map[string]thrift2.CustomWriter
 }
 
 var (
@@ -105,10 +107,19 @@ func (g *Args) GetOrSetBase() interface{} {
 	return g.base
 }
 
+func (g *Args) AddCustomWriter(name string, w thrift2.CustomWriter) (bool, thrift2.CustomWriter) {
+	if g.customWriters == nil {
+		g.customWriters = map[string]thrift2.CustomWriter{}
+	}
+	old, exists := g.customWriters[name]
+	g.customWriters[name] = w
+	return !exists, old
+}
+
 // Write ...
 func (g *Args) Write(ctx context.Context, out thrift.TProtocol) error {
 	if w, ok := g.inner.(gthrift.MessageWriter); ok {
-		return w.Write(ctx, out, g.Request, g.base)
+		return w.Write(ctx, out, g.Request, g.base, g.customWriters)
 	}
 	return fmt.Errorf("unexpected Args writer type: %T", g.inner)
 }
@@ -144,7 +155,7 @@ func (r *Result) SetCodec(inner interface{}) {
 // Write ...
 func (r *Result) Write(ctx context.Context, out thrift.TProtocol) error {
 	if w, ok := r.inner.(gthrift.MessageWriter); ok {
-		return w.Write(ctx, out, r.Success, nil)
+		return w.Write(ctx, out, r.Success, nil, nil)
 	}
 	return fmt.Errorf("unexpected Result writer type: %T", r.inner)
 }

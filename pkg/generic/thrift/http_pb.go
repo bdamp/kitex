@@ -44,7 +44,7 @@ func NewWriteHTTPPbRequest(svc *descriptor.ServiceDescriptor, pbSvc *desc.Servic
 }
 
 // Write ...
-func (w *WriteHTTPPbRequest) Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base) error {
+func (w *WriteHTTPPbRequest) Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base, customWriters map[string]CustomWriter) error {
 	req := msg.(*descriptor.HTTPRequest)
 	fn, err := w.svc.Router.Lookup(req)
 	if err != nil {
@@ -66,7 +66,7 @@ func (w *WriteHTTPPbRequest) Write(ctx context.Context, out thrift.TProtocol, ms
 	}
 	req.GeneralBody = pbMsg
 
-	return wrapStructWriter(ctx, req, out, fn.Request, &writerOption{requestBase: requestBase})
+	return wrapStructWriter(ctx, req, out, fn.Request, &writerOption{requestBase: requestBase, customWriters: customWriters})
 }
 
 // ReadHTTPResponse implement of MessageReaderWithMethod

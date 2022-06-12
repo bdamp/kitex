@@ -62,7 +62,7 @@ func (m *WriteJSON) SetBase64Binary(enable bool) {
 }
 
 // Write write json string to out thrift.TProtocol
-func (m *WriteJSON) Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base) error {
+func (m *WriteJSON) Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base, customWriters map[string]CustomWriter) error {
 	if !m.hasRequestBase {
 		requestBase = nil
 	}

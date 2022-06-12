@@ -162,10 +162,17 @@ func addFunction(fn *parser.Function, tree *parser.Thrift, sDsc *descriptor.Serv
 		return err
 	}
 	hasRequestBase := false
+	hasCustomData := false
 	if reqType.Type == descriptor.STRUCT {
 		for _, f := range reqType.Struct.FieldsByName {
 			if f.Type.IsRequestBase {
 				hasRequestBase = true
+				break
+			}
+		}
+		for _, f := range reqType.Struct.FieldsByName {
+			if f.Type.IsCustomData {
+				hasCustomData = true
 				break
 			}
 		}
@@ -218,6 +225,7 @@ func addFunction(fn *parser.Function, tree *parser.Thrift, sDsc *descriptor.Serv
 		Request:        req,
 		Response:       resp,
 		HasRequestBase: hasRequestBase,
+		HasCustomData:  hasCustomData,
 	}
 	for _, ann := range fn.Annotations {
 		for _, v := range ann.GetValues() {
@@ -310,6 +318,9 @@ func parseType(t *parser.Type, tree *parser.Thrift, cache map[string]*descriptor
 		if !ok {
 			return nil, fmt.Errorf("missing type: %s", typeName)
 		}
+
+		// TODO refactor using api.custom_data annotation
+
 		ty := &descriptor.TypeDescriptor{
 			Name: t.Name,
 			Type: descriptor.STRUCT,
@@ -322,9 +333,11 @@ func parseType(t *parser.Type, tree *parser.Thrift, cache map[string]*descriptor
 			},
 			// the first depth of base.Base is Request Base
 			IsRequestBase: t.Name == "base.Base" && recursionDepth == 1,
+			IsCustomData: (typeName == "AgwCommonParam" && recursionDepth == 1) || (typePkg == "agw_common_param" && recursionDepth == 2),
+			CustomDataName: typeName,
 		}
-		// cannot cache the request base
-		if !ty.IsRequestBase {
+		// cannot cache the request base and custom data
+		if !ty.IsRequestBase && !ty.IsCustomData {
 			cache[t.Name] = ty
 		}
 		for _, field := range st.Fields {

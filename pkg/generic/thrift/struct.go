@@ -50,7 +50,7 @@ type WriteStruct struct {
 var _ MessageWriter = (*WriteStruct)(nil)
 
 // Write ...
-func (m *WriteStruct) Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base) error {
+func (m *WriteStruct) Write(ctx context.Context, out thrift.TProtocol, msg interface{}, requestBase *Base, customWriters map[string]CustomWriter) error {
 	if !m.hasRequestBase {
 		requestBase = nil
 	}
