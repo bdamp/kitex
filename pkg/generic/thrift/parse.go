@@ -333,7 +333,12 @@ func parseType(t *parser.Type, tree *parser.Thrift, cache map[string]*descriptor
 			},
 			// the first depth of base.Base is Request Base
 			IsRequestBase: t.Name == "base.Base" && recursionDepth == 1,
-			IsCustomData: (typeName == "AgwCommonParam" && recursionDepth == 1) || (typePkg == "agw_common_param" && recursionDepth == 2),
+			IsCustomData: (typeName == "AgwCommonParam" && recursionDepth == 1) ||
+				// hardcoded for the moment
+				((typePkg == "agw_common_param" || typePkg == "abtest_version" ||
+					typePkg == "abtest" || typePkg == "device_info" ||
+					typePkg == "location_service" || typePkg == "toutiao.location.location" ||
+					typePkg == "shark_antispam") && recursionDepth == 2),
 			CustomDataName: typeName,
 		}
 		// cannot cache the request base and custom data
